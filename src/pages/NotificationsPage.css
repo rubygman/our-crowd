@@ -1,0 +1,135 @@
+.notifications-page {
+  background: #f5f5f5;
+  min-height: calc(100vh - 60px);
+}
+
+.notifications-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.header-title-section {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.notifications-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1a5f2a;
+  margin: 0;
+}
+
+.unread-badge {
+  background: #1a5f2a;
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.mark-all-read-btn {
+  padding: 0.5rem 1rem;
+  background: white;
+  color: #1a5f2a;
+  border: 1px solid #1a5f2a;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mark-all-read-btn:hover {
+  background: #e8f5e9;
+}
+
+.notifications-list {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+.empty-notifications {
+  padding: 4rem 2rem;
+  text-align: center;
+}
+
+.empty-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.empty-notifications h2 {
+  font-size: 1.25rem;
+  color: #333;
+  margin-bottom: 0.5rem;
+}
+
+.empty-notifications p {
+  color: #888;
+  font-size: 0.95rem;
+  max-width: 300px;
+  margin: 0 auto;
+}
+
+.loading-state {
+  padding: 4rem 2rem;
+  text-align: center;
+}
+
+.loading-state .loading-spinner {
+  margin: 0 auto 1rem;
+}
+
+.loading-state p {
+  color: #666;
+}
+
+.error-message {
+  background: #fee;
+  color: #c33;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  border: 1px solid #fcc;
+}
+
+/* רספונסיביות */
+@media (max-width: 480px) {
+  .notifications-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .header-title-section {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .mark-all-read-btn {
+    width: 100%;
+    text-align: center;
+  }
+  
+  .notifications-title {
+    font-size: 1.25rem;
+  }
+  
+  .empty-notifications {
+    padding: 3rem 1.5rem;
+  }
+  
+  .empty-icon {
+    font-size: 3rem;
+  }
+}

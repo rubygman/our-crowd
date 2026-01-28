@@ -1,0 +1,4 @@
+# SPA Redirects for React Router
+# כל מסלול מפנה ל-index.html עם קוד 200
+
+/*    /index.html   200

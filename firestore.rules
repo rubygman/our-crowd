@@ -1,0 +1,233 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ========================================
+    // פונקציות עזר
+    // ========================================
+    
+    // בדיקה אם המשתמש מחובר
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // בדיקה אם המשתמש הוא בעל המסמך
+    function isOwner(uid) {
+      return isAuthenticated() && request.auth.uid == uid;
+    }
+    
+    // בדיקה אם המשתמש הוא אדמין (לפי שדה role במסמך המשתמש)
+    function isAdmin() {
+      return isAuthenticated() && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin";
+    }
+    
+    // בדיקה שהשדה לא השתנה
+    function fieldUnchanged(field) {
+      return !(field in request.resource.data) || 
+        request.resource.data[field] == resource.data[field];
+    }
+
+    // ========================================
+    // users - פרופילי משתמשים
+    // ========================================
+    match /users/{uid} {
+      // קריאה: רק המשתמש עצמו או אדמין
+      allow read: if isOwner(uid) || isAdmin();
+      
+      // יצירה: רק המשתמש עצמו
+      allow create: if isOwner(uid);
+      
+      // עדכון: רק המשתמש עצמו
+      // לא ניתן לשנות את ה-uid או role
+      allow update: if isOwner(uid) && 
+        fieldUnchanged('uid') &&
+        fieldUnchanged('role');
+      
+      // מחיקה: לא מותרת (soft delete בלבד)
+      allow delete: if false;
+
+      // ========================================
+      // users/{uid}/notifications - התראות
+      // ========================================
+      match /notifications/{notificationId} {
+        // קריאה: רק המשתמש עצמו
+        allow read: if isOwner(uid);
+        
+        // יצירה: משתמש מחובר עם הגבלות נגד ספאם
+        allow create: if isAuthenticated() &&
+          // fromUserId חייב להיות המשתמש המחובר
+          request.resource.data.fromUserId == request.auth.uid &&
+          // סוג ההתראה חייב להיות תקין
+          request.resource.data.type in ['like', 'comment', 'mention'] &&
+          // ההתראה חייבת להתחיל כלא נקראה
+          request.resource.data.isRead == false;
+        
+        // עדכון: רק המשתמש עצמו (לסימון כנקרא)
+        allow update: if isOwner(uid);
+        
+        // מחיקה: לא מותרת
+        allow delete: if false;
+      }
+    }
+
+    // ========================================
+    // teams - קבוצות כדורגל
+    // ========================================
+    match /teams/{teamId} {
+      // קריאה: לכולם (גם לא מחוברים)
+      allow read: if true;
+      
+      // כתיבה: רק אדמין
+      allow write: if isAdmin();
+    }
+
+    // ========================================
+    // communities - קהילות
+    // ========================================
+    match /communities/{communityId} {
+      // קריאה: לכולם
+      allow read: if true;
+      
+      // יצירה: רק אדמין
+      allow create: if isAdmin();
+      
+      // עדכון: אדמין או עדכון memberCount בלבד
+      allow update: if isAdmin() || (
+        isAuthenticated() &&
+        fieldUnchanged('name') &&
+        fieldUnchanged('description') &&
+        fieldUnchanged('teamId') &&
+        fieldUnchanged('imageURL') &&
+        fieldUnchanged('createdAt')
+      );
+      
+      // מחיקה: רק אדמין
+      allow delete: if isAdmin();
+
+      // ========================================
+      // communities/{communityId}/members - חברי קהילה
+      // ========================================
+      match /members/{memberId} {
+        // קריאה: לכולם
+        allow read: if true;
+        
+        // יצירה: רק אם ה-memberId הוא ה-uid של המשתמש
+        allow create: if isOwner(memberId);
+        
+        // עדכון: רק אדמין (לשינוי תפקידים)
+        allow update: if isAdmin();
+        
+        // מחיקה: רק המשתמש עצמו או אדמין
+        allow delete: if isOwner(memberId) || isAdmin();
+      }
+    }
+
+    // ========================================
+    // posts - פוסטים
+    // ========================================
+    match /posts/{postId} {
+      // קריאה: לכולם
+      allow read: if true;
+      
+      // יצירה: רק משתמש מחובר
+      // חייב לכלול authorId שתואם למשתמש
+      allow create: if isAuthenticated() && 
+        request.resource.data.authorId == request.auth.uid &&
+        request.resource.data.content is string &&
+        request.resource.data.content.size() > 0 &&
+        request.resource.data.content.size() <= 5000;
+      
+      // עדכון: רק המחבר או אדמין
+      // המחבר יכול לעדכן content או לעשות soft delete
+      // לא ניתן לשנות authorId, communityId
+      allow update: if (
+        // המחבר יכול לערוך
+        (isAuthenticated() && 
+          resource.data.authorId == request.auth.uid &&
+          fieldUnchanged('authorId') &&
+          fieldUnchanged('communityId') &&
+          fieldUnchanged('createdAt'))
+        ||
+        // אדמין יכול לעשות הכל
+        isAdmin()
+        ||
+        // עדכון likeCount/commentCount מותר למחוברים
+        (isAuthenticated() &&
+          fieldUnchanged('authorId') &&
+          fieldUnchanged('authorName') &&
+          fieldUnchanged('authorPhotoURL') &&
+          fieldUnchanged('communityId') &&
+          fieldUnchanged('content') &&
+          fieldUnchanged('imageURL') &&
+          fieldUnchanged('isDeleted') &&
+          fieldUnchanged('createdAt'))
+      );
+      
+      // מחיקה: לא מותרת (soft delete בלבד)
+      allow delete: if false;
+
+      // ========================================
+      // posts/{postId}/comments - תגובות
+      // ========================================
+      match /comments/{commentId} {
+        // קריאה: לכולם
+        allow read: if true;
+        
+        // יצירה: רק משתמש מחובר
+        allow create: if isAuthenticated() && 
+          request.resource.data.authorId == request.auth.uid &&
+          request.resource.data.content is string &&
+          request.resource.data.content.size() > 0 &&
+          request.resource.data.content.size() <= 2000;
+        
+        // עדכון: רק המחבר או אדמין
+        allow update: if (
+          isAuthenticated() && 
+          resource.data.authorId == request.auth.uid &&
+          fieldUnchanged('authorId') &&
+          fieldUnchanged('createdAt')
+        ) || isAdmin();
+        
+        // מחיקה: לא מותרת (soft delete בלבד)
+        allow delete: if false;
+      }
+
+      // ========================================
+      // posts/{postId}/likes - לייקים
+      // ========================================
+      match /likes/{likeUserId} {
+        // קריאה: לכולם
+        allow read: if true;
+        
+        // יצירה: רק אם ה-likeUserId שווה ל-uid של המשתמש
+        allow create: if isOwner(likeUserId);
+        
+        // עדכון: לא מותר
+        allow update: if false;
+        
+        // מחיקה: רק אם ה-likeUserId שווה ל-uid של המשתמש
+        allow delete: if isOwner(likeUserId);
+      }
+    }
+
+    // ========================================
+    // reports - דיווחים
+    // ========================================
+    match /reports/{reportId} {
+      // קריאה: רק אדמין
+      allow read: if isAdmin();
+      
+      // יצירה: כל משתמש מחובר
+      allow create: if isAuthenticated() && 
+        request.resource.data.reporterId == request.auth.uid;
+      
+      // עדכון: רק אדמין (לשינוי סטטוס)
+      allow update: if isAdmin();
+      
+      // מחיקה: רק אדמין
+      allow delete: if isAdmin();
+    }
+  }
+}

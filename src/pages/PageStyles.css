@@ -1,0 +1,51 @@
+.page-subtitle {
+  color: #666;
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+}
+
+.placeholder-text {
+  background-color: #e9e9e9;
+  padding: 2rem;
+  border-radius: 8px;
+  text-align: center;
+  color: #888;
+  font-size: 1rem;
+}
+
+/* Onboarding Page */
+.onboarding-page {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(135deg, #1a5f2a 0%, #2d8a3e 100%);
+  padding: 1rem;
+}
+
+.onboarding-container {
+  background: white;
+  padding: 2.5rem;
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  text-align: center;
+  max-width: 500px;
+  width: 100%;
+}
+
+.onboarding-container .page-title {
+  margin-bottom: 0.5rem;
+}
+
+.onboarding-container .page-subtitle {
+  margin-bottom: 2rem;
+}
+
+.user-info {
+  background: #f0f7f1;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  color: #1a5f2a;
+  font-weight: 500;
+}
